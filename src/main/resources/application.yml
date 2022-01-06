@@ -1,0 +1,19 @@
+
+spring:
+  # POSTGERSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/yhk_querydsl
+    username: dboopg
+    password: dboopg
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+#        show_sql: true
+        format_sql: true
+        use_sql_comments: true
+  logging.level:
+    org.hibernate.SQL: debug
