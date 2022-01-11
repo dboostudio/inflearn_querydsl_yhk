@@ -2,7 +2,6 @@ package dboo.study.yhk_querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
-import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -216,6 +215,46 @@ public class QueryDslBasicTest {
 
         assertThat(result).extracting("username")
                 .containsExactly("teamA", "teamB");
+    }
+
+    // 예) 회원 팀 조인, 팀 이름이 teamA인것만 조인, 회원 모두 조회
+    // JPQL : select m, t from Member m left join m.team t on t.name = 'teamA'
+
+    @Test
+    public void join_on_filter() throws Exception {
+        List<Tuple> teamA = queryFactory
+                .select(member, team)
+                .from(member)
+                .leftJoin(member.team, team)
+                .on(team.name.eq("teamA")) // 필터링, innerJoin (join)의 경우에는 의미가 없고, where절에서 처리하는것을 권장.
+                .fetch();
+        for (Tuple tuple : teamA) {
+            System.out.println("tuple = " + tuple);
+        }
+    }
+
+    /**
+     * 연관관계가 없는 엔티티를 외부 조인
+     * 회원의 이름이 팀 이름과 같은 대상 외부 조인
+     */
+    @Test
+    public void join_on_no_rel() throws Exception {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        List<Tuple> result = queryFactory
+                .select(member, team)
+                .from(member)
+//                .leftJoin(member.team, team)
+// 위와 같이 member.team, team으로 조인할 경우 id를 기반으로 조인된다.
+// 아래와 같이 team에만 조인을 걸고 제약조건으로 member.username = team.name을 필터링을 준다.
+                .leftJoin(team).on(member.username.eq(team.name))
+                .fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println("Tuple : " + tuple);
+        }
     }
 
 }
