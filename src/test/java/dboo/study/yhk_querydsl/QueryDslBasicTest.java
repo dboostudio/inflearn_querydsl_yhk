@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.PersistenceUnit;
 import javax.transaction.Transactional;
 
 import java.util.List;
@@ -255,6 +257,49 @@ public class QueryDslBasicTest {
         for (Tuple tuple : result) {
             System.out.println("Tuple : " + tuple);
         }
+    }
+
+    // - Fetch Join
+    // SQL이 제공하는 기능은 아니다. join을 사용해서 엔티티를 한번에 조회할때 사용하고, 주로 성능최적화를 위해 사용한다.
+
+    @PersistenceUnit
+    EntityManagerFactory emf;
+
+    @Test
+    public void fetchJoinNo() throws Exception { // fetch join 없을 때
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        System.out.println(findMember);
+        // member엔티티에서 team의 페치전략이 lazy이기 때문에 위 쿼리로만은 team은 조회하지 않는다.
+
+        // EntityMangerFactory를 통해 해당 엔티티가 초기화되었는지 확인할 수 있다.
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("페치 조인 적용").isEqualTo(false);
+    }
+
+    @Test
+    public void fetchJoinYes() throws Exception { // fetch join 있을 때
+        em.flush();
+        em.clear();
+
+        Member findMember = queryFactory
+                .selectFrom(member)
+                .join(member.team, team).fetchJoin() // 페치조인
+                .where(member.username.eq("member1"))
+                .fetchOne();
+
+        System.out.println(findMember);
+        // member엔티티에서 team의 페치전략이 lazy이기 때문에 위 쿼리로만은 team은 조회하지 않는다.
+
+        // EntityMangerFactory를 통해 해당 엔티티가 초기화되었는지 확인할 수 있다.
+        boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
+        assertThat(loaded).as("페치 조인 적용").isEqualTo(true);
     }
 
 }
