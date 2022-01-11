@@ -183,4 +183,39 @@ public class QueryDslBasicTest {
         assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
 
+    /**
+     * teamA에 소속된 모든 회원을 찾기
+     */
+    @Test
+    public void join() throws Exception {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .join(member.team, team)
+                //.on()으로 조인 제약도 걸 수 있다.
+                .where(team.name.eq("teamA"))
+                .fetch();
+        assertThat(result).extracting("username")
+                .containsExactly("member1", "member2");
+    }
+
+    /**
+     * 회원의 이름이 팀 이름과 같은 회원 조회
+     * 연관관계없는 조인의 예(세타조인)
+     */
+    @Test
+    public void theta_join() throws Exception {
+        em.persist(new Member("teamA"));
+        em.persist(new Member("teamB"));
+        em.persist(new Member("teamC"));
+
+        List<Member> result = queryFactory
+                .select(member)
+                .from(member, team)
+                .where(member.username.eq(team.name))
+                .fetch();
+
+        assertThat(result).extracting("username")
+                .containsExactly("teamA", "teamB");
+    }
+
 }

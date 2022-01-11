@@ -17,4 +17,5 @@ spring:
 #        jpql 을 comment로 보여줌
 #        use_sql_comments: true
   logging.level:
-    org.hibernate.SQL: debug
+    org.hibernate.SQL: info
+    org.hibernate.type: trace
