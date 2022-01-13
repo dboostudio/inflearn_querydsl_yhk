@@ -2,6 +2,7 @@ package dboo.study.yhk_querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import javax.transaction.Transactional;
 
 import java.util.List;
 
+import static com.querydsl.jpa.JPAExpressions.*;
 import static dboo.study.yhk_querydsl.QMember.member;
 import static dboo.study.yhk_querydsl.QTeam.team;
 import static org.assertj.core.api.Assertions.*;
@@ -301,5 +303,95 @@ public class QueryDslBasicTest {
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("페치 조인 적용").isEqualTo(true);
     }
+
+    /**
+     * 나이가 가장 많은 회원을 조회
+     */
+    @Test
+    public void subQuery() throws Exception {
+
+        QMember memberSub = new QMember("memberSub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(
+                        // subQuery에서 alias가 겹치면 안되기때문에, Q타입을 하나 더 다른 alias로 생성하여 사용.
+                        select(memberSub.age.max())
+                                .from(memberSub)
+                )).fetch();
+
+        assertThat(result).extracting("age").containsExactly(40);
+    }
+
+    /**
+     * 나이가 평균 이상인 회원을 조회
+     */
+    @Test
+    public void subQuery_goe() throws Exception {
+
+        QMember memberSub = new QMember("memberSub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe(
+                        // subQuery에서 alias가 겹치면 안되기때문에, Q타입을 하나 더 다른 alias로 생성하여 사용.
+                        select(memberSub.age.avg())
+                                .from(memberSub)
+                )).fetch();
+
+        assertThat(result).extracting("age").containsExactly(30, 40);
+    }
+
+    /**
+     * 나이가 평균 이상인 회원을 조회
+     */
+    @Test
+    public void subQuery_in() throws Exception {
+
+        QMember memberSub = new QMember("memberSub");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(
+                        // subQuery에서 alias가 겹치면 안되기때문에, Q타입을 하나 더 다른 alias로 생성하여 사용.
+                        // JPAExpressions.select 를 아래와 같이 static import 가능.
+                        select(memberSub.age)
+                                .from(memberSub)
+                                .where(memberSub.age.gt(10))
+                )).fetch();
+
+        assertThat(result).extracting("age").containsExactly(20, 30, 40);
+    }
+
+    /**
+     * 나이가 평균 이상인 회원을 조회
+     */
+    @Test
+    public void selectSubQuery() throws Exception {
+
+        QMember memberSub = new QMember("memberSub");
+
+
+        List<Tuple> result = queryFactory.select(
+                member.username,
+                select(memberSub.age.avg())
+                        .from(memberSub)
+        ).from(member).fetch();
+
+        for (Tuple tuple : result) {
+            System.out.println(tuple);
+        }
+    }
+
+    /***
+     * JPA의 subQuery의 한계 : from절에는 subQuery(인라인뷰)를 사용할 수 없다.
+     *
+     * 해결방안
+     *  1. join 을 사용한다.
+     *  2. query를 2번 분리하여 사용한다.
+     *  3. nativeSQL을 사용한다.
+     */
+
+
 
 }
