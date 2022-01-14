@@ -2,6 +2,7 @@ package dboo.study.yhk_querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -304,6 +305,15 @@ public class QueryDslBasicTest {
         assertThat(loaded).as("페치 조인 적용").isEqualTo(true);
     }
 
+    /***
+     * JPA의 subQuery의 한계 : from절에는 subQuery(인라인뷰)를 사용할 수 없다.
+     *
+     * 해결방안
+     *  1. join 을 사용한다.
+     *  2. query를 2번 분리하여 사용한다.
+     *  3. nativeSQL을 사용한다.
+     */
+
     /**
      * 나이가 가장 많은 회원을 조회
      */
@@ -384,13 +394,35 @@ public class QueryDslBasicTest {
     }
 
     /***
-     * JPA의 subQuery의 한계 : from절에는 subQuery(인라인뷰)를 사용할 수 없다.
-     *
-     * 해결방안
-     *  1. join 을 사용한다.
-     *  2. query를 2번 분리하여 사용한다.
-     *  3. nativeSQL을 사용한다.
+     * 가급적이면 이런 기능은 어플리케이션단에서 처리하는게 좋다.
      */
+
+    @Test
+    public void basic_case() throws Exception {
+        List<String> result = queryFactory
+                .select(member.age
+                        .when(10).then("열살")
+                        .when(20).then("스무살")
+                        .otherwise("기타")
+                ).from(member).fetch();
+        for (String s : result) {
+            System.out.println(s);
+        }
+    }
+
+    @Test
+    public void complex_case() throws Exception {
+        List<String> result = queryFactory.select(new CaseBuilder()
+                .when(member.age.between(0, 20)).then("0~20")
+                .when(member.age.between(21, 30)).then("21~30")
+                .otherwise("기타")
+        ).from(member).fetch();
+        for (String s : result) {
+            System.out.println(s);
+        }
+    }
+
+
 
 
 
