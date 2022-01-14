@@ -152,7 +152,7 @@ public class QueryDslBasicTest {
 
     @Test
     public void aggregation() {
-        // 실무에서는 Tuple보단 DTO(? DAO가 맞는 말 아닌가...?) 로 바로 뽑아오는 방법을 주로 쓴다.
+        // 실무에서는 Tuple보단 DTO로 바로 뽑아오는 방법을 주로 쓴다.
         List<Tuple> result = queryFactory.select(
                 member.count(),
                 member.age.sum(),
