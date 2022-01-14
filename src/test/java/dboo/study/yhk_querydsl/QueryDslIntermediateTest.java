@@ -2,8 +2,11 @@ package dboo.study.yhk_querydsl;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
+import javax.persistence.TypedQuery;
 import javax.transaction.Transactional;
 import java.util.List;
 
@@ -80,4 +84,93 @@ public class QueryDslIntermediateTest {
             System.out.println("age = " + age);
         }
     }
+
+    /**
+     * JPQL 에서 DTO로 반환받는 법
+     */
+
+    @Test
+    public void findDto_jpql() throws Exception {
+        // jpql에서는 - new operation 활용으로 해야함
+        List<MemberDto> result = em.createQuery("select new dboo.study.yhk_querydsl.MemberDto(m.username, m.age) from Member m ", MemberDto.class).getResultList();
+
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    /**
+     * QueryDSL 에서 DTO로 반환 받는 법 3가지 지원
+     * - 프로퍼티 접근
+     * - 필드 직접 접근
+     * - 생성자 사용
+     */
+
+    // 프로퍼티 접근 (세터로 값 할당)
+    @Test
+    public void findDtoBySetter() throws Exception {
+        List<MemberDto> result = queryFactory
+                .select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    // 프로퍼티 접근 (필드에 값 할당, 세터 무시)
+    @Test
+    public void findDtoByFields() throws Exception {
+        List<MemberDto> result = queryFactory
+                .select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    // 프로퍼티 접근 : DTO의 멤버변수 이름이 다른 경우, subQuery조회결과를 as로 반환할 경우
+    @Test
+    public void findUserDtoByFields() throws Exception {
+        QMember memberSub = new QMember("memberSub");
+
+        List<UserDto> result = queryFactory
+                .select(Projections.fields(UserDto.class
+                        , member.username.as("name")
+                        , ExpressionUtils.as(member.username, "name")
+                        , ExpressionUtils.as(JPAExpressions.select(memberSub.age.max()).from(memberSub), "age")
+                ))
+                .from(member)
+                .fetch();
+        for (UserDto userDto : result) {
+            System.out.println("userDto = " + userDto);
+        }
+    }
+
+    // 생성자 접근
+    @Test
+    public void findDtoByConstructor() throws Exception {
+        List<MemberDto> result = queryFactory
+                .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (MemberDto memberDto : result) {
+            System.out.println("memberDto = " + memberDto);
+        }
+    }
+
+    @Test
+    public void findUserDtoByConstructor() throws Exception {
+        List<UserDto> result = queryFactory
+                .select(Projections.constructor(UserDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+        for (UserDto userDto : result) {
+            System.out.println("userDto = " + userDto);
+        }
+    }
+
+
+
 }
