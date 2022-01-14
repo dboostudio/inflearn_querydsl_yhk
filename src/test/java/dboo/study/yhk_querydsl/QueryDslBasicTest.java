@@ -3,7 +3,7 @@ package dboo.study.yhk_querydsl;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.CaseBuilder;
-import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -422,6 +422,29 @@ public class QueryDslBasicTest {
         }
     }
 
+
+    @Test
+    public void contant() throws Exception {
+        List<Tuple> result = queryFactory
+                .select(member.username, Expressions.constant("A"))
+                .from(member)
+                .fetch();
+        for (Tuple tuple : result) {
+            System.out.println(tuple);
+        }
+    }
+
+    @Test
+    public void concat() throws Exception {
+        List<String> result = queryFactory
+                .select(member.username.concat("_").concat(member.age.stringValue()))
+                .from(member)
+                .where(member.username.eq("member1"))
+                .fetch();
+        for (String string : result) {
+            System.out.println("string = " + string);
+        }
+    }
 
 
 
